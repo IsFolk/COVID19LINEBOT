@@ -1,17 +1,13 @@
 from __future__ import unicode_literals
-import os
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from linebot.models.send_messages import ImageSendMessage
 import requests
-import json
 import configparser
 import re
-import random
 import matplotlib.pyplot as plt
-import datetime
 import pathlib
 import pyimgur
 
