@@ -1,1 +1,1 @@
-web: gunicorn snow_resort_bot.wsgi
+web: gunicorn app_test:app –preload
