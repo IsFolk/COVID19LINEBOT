@@ -76,7 +76,7 @@ def rightcountryname(input):
     for i in range(len(countrycode)):
         if input.lower() in countrycode[i]['name'].lower():
             templist.append(countrycode[i]['name'])   
-    return '你輸入的關鍵字查詢結果：' + '、'.join(templist)
+    return '你輸入的關鍵字查詢結果：\n' + '、'.join(templist)
 
 
 # 從指令中找國家名:今日即時資訊
