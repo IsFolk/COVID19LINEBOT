@@ -328,11 +328,16 @@ def echo(event):
         elif("趨勢圖" in event.message.text):
             plotlink = uploading(getPlot(convertToISO(substringforcountrynameImage(event.message.text))))
             
-            line_bot_api.reply_message(
-                event.reply_token, ImageSendMessage(
-                    original_content_url=plotlink,
-                    preview_image_url=plotlink
-                ))
+            if(plotlink[0:5] == 'http'):
+                line_bot_api.reply_message(
+                    event.reply_token, ImageSendMessage(
+                        original_content_url=plotlink,
+                        preview_image_url=plotlink
+                    ))
+            else:
+                line_bot_api.reply_message(
+                event.reply_token, TextSendMessage(text='沒有相關結果，請檢查輸入國家或關鍵字是否有誤。')
+            )
         # 國家查詢
         elif("英文名字" in event.message.text):
             correctname = rightcountryname(substringforcountrynameCorrect(event.message.text))
