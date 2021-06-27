@@ -237,7 +237,7 @@ def getPlot(countryISO):
         plt.legend(labels=[countryISO], loc = 'best',  prop={'size': 20})
 
         
-        imgname = 'plotresult.jpg'
+        imgname = 'plotresult.png'
         
         # 存圖
         plt.savefig(imgname)
