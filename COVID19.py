@@ -18,6 +18,7 @@ app = Flask(__name__)
 config = configparser.ConfigParser()
 config.read('config.ini')
 
+# 用來串接Message-api的資料
 line_bot_api = LineBotApi(config.get('line-bot', 'channel_access_token'))
 handler = WebhookHandler(config.get('line-bot', 'channel_secret'))
 
@@ -39,29 +40,27 @@ def callback():
 
     return 'OK'
 
-
-# test
+# test, 回傳格式為json
 r = requests.get('https://corona-api.com/countries')
 data = r.json()
-
-# 查訊正確名稱,為了確保使用者的輸入正確
-def rightcountryname(input):
-    templist=[]
-    for i in range(len(countrycode)):
-        if input.lower() in countrycode[i]['name'].lower():
-            templist.append(countrycode[i]['name'])
-
-    
-    return '你輸入的關鍵字查詢結果：' + '、'.join(templist)
-
-
-# 此陣列儲存所有country對應的ISO3166-1 code,之後查訊會用到
+# 此陣列儲存在此API中所有country對應的ISO3166-1 code,之後查訊會用到
 countrycode = []
 for i in range(len(data["data"])):
     countrycode.append(
         {'name': data["data"][i]["name"], 'code': data["data"][i]["code"]})
 
-# 找關鍵國家字
+# 查訊正確名稱,為了確保使用者的輸入正確, e.g.輸入korea,得到 Korea和Democratic People's Republic of、S. Korea
+def rightcountryname(input):
+    # 儲存多個country name
+    templist=[]
+    # 找找看有沒有重名的或是裡面有幾個字是對的
+    for i in range(len(countrycode)):
+        if input.lower() in countrycode[i]['name'].lower():
+            templist.append(countrycode[i]['name'])   
+    return '你輸入的關鍵字查詢結果：' + '、'.join(templist)
+
+
+# 從指令中找國家名:今日即時資訊
 def substringforcountryname(Allinput):
     # 關鍵字必須要包含,今日即時資訊, 否則回傳error
     if '今日即時資訊' in Allinput:
@@ -81,7 +80,7 @@ def substringforcountryname(Allinput):
     else:
         return 'keywords error'
 
-# 轉換countryISO
+# 轉換countryname to countryISO
 def convertToISO(countryinput):
     for i in range(len(countrycode)):
         if countrycode[i]['name'].lower() == countryinput.lower():
@@ -89,7 +88,7 @@ def convertToISO(countryinput):
             break
     return 'notfound'
 
-#單一國家即時資料
+# 單一國家即時資料
 def get_A_CountryRealTimeData(countryinput_only_realtime):
     req_only_now = requests.get('https://corona-api.com/countries')
     datanow = req_only_now.json()
@@ -103,9 +102,11 @@ def get_A_CountryRealTimeData(countryinput_only_realtime):
     # 紀錄是否有>1的國家
     country = []
     
+    # 用來記錄輸入國家是否完全和api資料名稱相同
     match = False
     
     for i in range(len(datanow['data'])):
+        # 這樣假設是為了讓使用者有更多彈性的使用空間, 不需打完全部的名字
         if countryinput_only_realtime.lower().replace(" ", "") in datanow['data'][i]['name'].lower().replace(" ", ""):
             print(datanow['data'][i])
             list['name'] = datanow['data'][i]['name']
@@ -125,10 +126,8 @@ def get_A_CountryRealTimeData(countryinput_only_realtime):
             list['death_rate'] = datanow['data'][i]['latest_data']['calculated']['death_rate']
             
             list['updated_at'] = datanow['data'][i]['updated_at']
-            
-            print(list)
-            
-            # 紀錄查詢到的國家
+                        
+            # 紀錄查詢到的國家數量
             country.append(datanow['data'][i]['name'])
             
             # 用來處理若國家重名的情況, e.g. Sudan & South Sudan, 若查詢的為 Sudan 則應只回傳 Sudan的結果
@@ -141,21 +140,24 @@ def get_A_CountryRealTimeData(countryinput_only_realtime):
         result = '你輸入的國家有超過兩個查詢結果：' + '、'.join(country)+"，請輸入更精確的關鍵字。"
     # 未搜尋到國家的狀況
     elif(len(country) == 0):
-        result = '未查詢到資料，請檢查是否有輸入錯誤指令或關鍵字'
+        result = '未查詢到資料，請檢查是否有輸入錯誤指令或關鍵字。'
     # 回傳結果
     else:
         for i in list:
+            # 用來判斷從api中取得的資料
             outcome = list[i]
-
-
+            
+            # 讓數字每三位有一個逗號
             if(isinstance(outcome, int)):
                 outcome = str("{:,}".format(outcome))
+            # 若有浮點數只處理到第二位
             elif(isinstance(outcome, float)):
                 outcome = str(round(outcome, 2))
+            # 處理沒有資料的情況
             elif(outcome is None):
                 outcome = 'N/A'
 
-            print(outcome)
+            # 加入資料
             if(i == 'name'):
                 result += "國家: " + outcome + "\n"
             elif(i == 'population'):
@@ -176,19 +178,19 @@ def get_A_CountryRealTimeData(countryinput_only_realtime):
                 result += "更新時間: " + outcome[0:10] + "\n"
     return result
 
-# 用來取得畫圖關鍵字裡面的國家名
+# 用來取得指令裡的國家名: 趨勢圖
 def substringforcountrynameImage(Allinput):
-    #關鍵字必須要包含,畫圖, 否則回傳error
-    if '畫圖' in Allinput:
-        # 找畫圖關鍵字最後一個字的index值
-        for match in re.finditer('畫圖', Allinput):
+    #關鍵字必須要包含'趨勢圖',否則回傳error
+    if '趨勢圖' in Allinput:
+        # 找'趨勢圖'最後一個字的index值
+        for match in re.finditer('趨勢圖', Allinput):
             #print (match.start(), match.end())
             end = match.end()
             #print(end)
 
         countryname = ''
         
-        # 畫圖關鍵字後開始找國家名
+        # 從'趨勢圖'後開始找國家名
         for i in range(end, len(Allinput)):
             if(Allinput[i] != ' '):
                 countryname += Allinput[i]
@@ -197,46 +199,61 @@ def substringforcountrynameImage(Allinput):
         return 'keywords error'
 
 
-# 做單一國家簡單的確診人數折線圖, 30天內
+# 做單一國家簡單的確診人數折線圖, 從現在時間起的30天內
 def getPlot(countryISO):
+    # 處理找不到輸入國家的情況
     if(countryISO == 'notfound'):
-        return "沒有相關結果，請檢查輸入國家或關鍵字是否有誤"
+        return str('沒有相關結果，請檢查輸入國家或關鍵字是否有誤。')
     else:
         req = requests.get("https://corona-api.com/countries/"+countryISO)
         dataAcountryMonth = req.json()
 
+        # 用來紀錄不同日期和資料(date, new_confirmed)
         A_country = {}
+        # 紀錄最多30天
         count = 0
+        # timeline是以最新的時間為第一個index值, 所以直接從0取到第30個
         for i in range(len(dataAcountryMonth['data']['timeline'])):
                 A_country[dataAcountryMonth['data']['timeline'][i]['date']] = dataAcountryMonth['data']['timeline'][i]['new_confirmed']
                 count+=1
+                # 到第30個就退出
                 if(count == 30):
                     break
-
+        # only date data
         countrydatelist = list(A_country.keys())
+        # 把開頭(e.g.2021-)去掉, 不然畫在圖上會太雜
         for i in range(len(countrydatelist)):
             countrydatelist[i] = countrydatelist[i].replace(str(dataAcountryMonth['data']['updated_at'])[0:5],"")
+        # '-'換成'/', 單純是我個人喜好XD
         for i in range(len(countrydatelist)):
             countrydatelist[i] = countrydatelist[i].replace("-","/")
+        # only confirmed data    
         countrydeathslist = list(A_country.values())
+        
+        # 將值反轉, 這樣才可以從比較小的日期開始畫趨勢圖
         countrydatelist.reverse()
         countrydeathslist.reverse()
 
+        # 設定圖的size
         plt.figure(figsize=(15,10),dpi=100,linewidth = 2)
-
+        # 畫折線圖
         plt.plot(countrydatelist,countrydeathslist,'s-',color = 'r')
-
+        # title設定
         plt.title("COVID19 daily confirmed population", x=0.5, y=1.03, fontsize=40)
 
-        plt.xlabel("Date", fontweight = "bold", fontsize = 20)                # 設定x軸標題及粗體
-        plt.ylabel("DailyConfimed", fontweight = "bold", fontsize = 20)    # 設定y軸標題及粗體
+        # 設定x軸標題及粗體
+        plt.xlabel("Date", fontweight = "bold", fontsize = 20)
+        # 設定y軸標題及粗體
+        plt.ylabel("DailyConfimed", fontweight = "bold", fontsize = 20)
 
+        # 讓x軸的值都轉45度不然會很擠
         plt.xticks(fontsize=15, rotation=45)
         plt.yticks(fontsize=20)
 
+        # 設定label
         plt.legend(labels=[countryISO], loc = 'best',  prop={'size': 20})
 
-        
+        # 預設會用來上船的檔名
         imgname = 'plotresult.png'
         
         # 存圖
@@ -244,40 +261,41 @@ def getPlot(countryISO):
 
         # 記住存圖的路徑
         result = str(pathlib.Path(imgname).parent.resolve()) + '/' + imgname
-        #plt.show()
 
-        # return Path
         return result
     
 # 上傳圖片到imgur上供LINEBOT讀取
 def uploading(imgpath):
     CLIENT_ID = "4a8a642de3b62a4" #這個是我用來上傳imgur圖片庫的ID
-    PATH = imgpath #A Filepath to an image on your computer"
-    title = "Uploaded with PyImgur"
+    PATH = imgpath # 會從getPlot拿到imgur的path
+    title = "Uploaded with PyImgur" # 用PyImgur上傳的, 不過使用者看不到(?)
 
+    # 上傳圖片後取得imgur的url
     im = pyimgur.Imgur(CLIENT_ID)
     uploaded_image = im.upload_image(PATH, title=title)
-    #print(uploaded_image.title)
-    #print(uploaded_image.link)
-    #print(uploaded_image.type)
     link = str(uploaded_image.link)
     
     return link
 
+
 # 回覆message
 @handler.add(MessageEvent, message=TextMessage)
-def pretty_echo(event):
-
+def echo(event):
     if event.source.user_id != "Udeadbeefdeadbeefdeadbeefdeadbeef":
 
-
+        # 使用說明書
         if("使用" in event.message.text):
             reply_arr = []
             reply_arr.append(TextSendMessage(
                 "您好！\n這裡是COVID19的即時資料庫喵♫♪♬\n以下是簡易的指令說明："))
             reply_arr.append(TextSendMessage(
                 "1.想要查詢單一國家的即時資料\n       今日即時資訊 國家名(英文大小寫都可以)\n範例: 今日即時資訊 Taiwan"))
+            reply_arr.append(TextSendMessage(
+                "2.想要查詢單一國家的30天內的確診趨勢圖\n       趨勢圖 國家名(英文大小寫都可以)\n範例: 趨勢圖 Taiwan"))
+            reply_arr.append(TextSendMessage(
+                "3.不確定要想要查詢的國家的正確名字嗎?\n       英文名字 國家名(英文大小寫都可以)\n範例: 英文名字 Korea"))
             line_bot_api.reply_message(event.reply_token, reply_arr)
+        # 今日即時資訊回覆
         elif("今日即時資訊" in event.message.text):
             # 獲取單一國家即時資料
             result = get_A_CountryRealTimeData(substringforcountryname(event.message.text))
@@ -286,18 +304,23 @@ def pretty_echo(event):
                 event.reply_token,
                 TextSendMessage(text=result)
             )
-        elif("畫圖" in event.message.text):
+        # 趨勢圖回覆
+        elif("趨勢圖" in event.message.text):
             plotlink = uploading(getPlot(convertToISO(substringforcountrynameImage(event.message.text))))
             
-
             line_bot_api.reply_message(
                 event.reply_token, ImageSendMessage(
                     original_content_url=plotlink,
                     preview_image_url=plotlink
                 ))
+        # 國家查詢
+        elif("英文名字" in event.message.text):
+            correctname = rightcountryname(event.message.text)
             
-
-
+            line_bot_api.reply_message(
+                event.reply_token, TextSendMessage(text=correctname)
+            )
+            
 
 
 if __name__ == "__main__":
