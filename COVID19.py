@@ -153,7 +153,7 @@ def get_A_CountryRealTimeData(countryinput_only_realtime):
         
     # 處理超過2個重複的結果，且輸入未有完全符合的情況
     if len(country) > 1 and match is not True:
-        result = '你輸入的國家有超過兩個查詢結果：' + '、'.join(country)+"，請輸入更精確的關鍵字。"
+        result = '你輸入的國家有超過兩個查詢結果：\n' + '、'.join(country)+"，請輸入更精確的關鍵字。"
     # 未搜尋到國家的狀況
     elif(len(country) == 0):
         result = '未查詢到資料，請檢查是否有輸入錯誤指令或關鍵字。'
