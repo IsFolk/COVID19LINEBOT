@@ -49,6 +49,25 @@ for i in range(len(data["data"])):
     countrycode.append(
         {'name': data["data"][i]["name"], 'code': data["data"][i]["code"]})
 
+# 從指令中找國家名:英文名字
+def substringforcountrynameCorrect(Allinput):
+    # 關鍵字必須要包含,英文名字, 否則回傳error
+    if '英文名字' in Allinput:
+        # 找英文名字最後一個字的index值
+        for match in re.finditer('英文名字', Allinput):
+            end = match.end()
+
+        countryname = ''
+        
+        # 英文名字後開始找國家名
+        for i in range(end, len(Allinput)):
+            if(Allinput[i] != ' '):
+                countryname += Allinput[i]
+        return countryname
+    else:
+        return 'keywords error'
+
+
 # 查訊正確名稱,為了確保使用者的輸入正確, e.g.輸入korea,得到 Korea和Democratic People's Republic of、S. Korea
 def rightcountryname(input):
     # 儲存多個country name
@@ -66,9 +85,7 @@ def substringforcountryname(Allinput):
     if '今日即時資訊' in Allinput:
         # 找今日即時資訊最後一個字的index值
         for match in re.finditer('今日即時資訊', Allinput):
-            print (match.start(), match.end())
             end = match.end()
-            print(end)
 
         countryname = ''
         
@@ -108,7 +125,6 @@ def get_A_CountryRealTimeData(countryinput_only_realtime):
     for i in range(len(datanow['data'])):
         # 這樣假設是為了讓使用者有更多彈性的使用空間, 不需打完全部的名字
         if countryinput_only_realtime.lower().replace(" ", "") in datanow['data'][i]['name'].lower().replace(" ", ""):
-            print(datanow['data'][i])
             list['name'] = datanow['data'][i]['name']
             
             list['population'] = datanow['data'][i]['population']
@@ -184,9 +200,7 @@ def substringforcountrynameImage(Allinput):
     if '趨勢圖' in Allinput:
         # 找'趨勢圖'最後一個字的index值
         for match in re.finditer('趨勢圖', Allinput):
-            #print (match.start(), match.end())
             end = match.end()
-            #print(end)
 
         countryname = ''
         
@@ -274,8 +288,10 @@ def uploading(imgpath):
     im = pyimgur.Imgur(CLIENT_ID)
     uploaded_image = im.upload_image(PATH, title=title)
     link = str(uploaded_image.link)
-    
-    return link
+    if(link != None):
+        return link
+    else:
+        return str('沒有相關結果，請檢查輸入國家或關鍵字是否有誤。')
 
 
 # 回覆message
@@ -315,7 +331,7 @@ def echo(event):
                 ))
         # 國家查詢
         elif("英文名字" in event.message.text):
-            correctname = rightcountryname(event.message.text)
+            correctname = rightcountryname(substringforcountrynameCorrect(event.message.text))
             
             line_bot_api.reply_message(
                 event.reply_token, TextSendMessage(text=correctname)
