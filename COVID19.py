@@ -243,7 +243,7 @@ def getPlot(countryISO):
         plt.savefig(imgname)
 
         # 記住存圖的路徑
-        result = str(pathlib.Path(imgname).parent.resolve()) + "\\" + imgname
+        result = str(pathlib.Path(imgname).parent.resolve()) + '/' + imgname
         #plt.show()
 
         # return Path
