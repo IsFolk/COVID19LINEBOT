@@ -280,7 +280,7 @@ def getPlot(countryISO):
     
 # 上傳圖片到imgur上供LINEBOT讀取
 def uploading(imgpath):
-    CLIENT_ID = "4a8a642de3b62a4" #這個是我用來上傳imgur圖片庫的ID, 這邊我沒有給因為比較像是個人資料
+    CLIENT_ID = "imgur id" #這個是我用來上傳imgur圖片庫的ID, 這邊我沒有給因為比較像是個人資料
     PATH = imgpath # 會從getPlot拿到imgur的path
     title = "Uploaded with PyImgur" # 用PyImgur上傳的, 不過使用者看不到(?)
 
